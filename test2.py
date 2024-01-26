@@ -22,6 +22,8 @@ def terminate():
 # Переменная для отслеживания количества шаров
 ball_count = 0
 sp_coord = (0, 0)
+score = 0
+radius = [25, 35, 45, 55, 65, 75]
 
 
 def start_screen():
@@ -75,13 +77,14 @@ def blitRotate(surf, image, pos, originPos, angle):
 
 # Функция для удаления шаров и создания нового
 def remove_ball(arbiter, space, data):
-    global ball_count
+    global ball_count, score, radius
     if isinstance(arbiter.shapes[0], pymunk.Circle) and isinstance(arbiter.shapes[1], pymunk.Circle):
         shape = arbiter.shapes[0]
         shape2 = arbiter.shapes[1]
         if shape.radius == max(radius) and shape2.radius == max(radius):
             space.remove(shape, shape.body)
             space.remove(shape2, shape2.body)
+            score += 4
             print('you win')
         if shape.radius == shape2.radius and shape.radius != max(radius):
             ball_count -= 2
@@ -89,19 +92,23 @@ def remove_ball(arbiter, space, data):
             ball_count += 1
             space.remove(shape, shape.body)
             space.remove(shape2, shape2.body)
+            if shape.radius > radius[2]:
+                score += 3
+            else:
+                score += 1
     return True
 
 
 def main():
-    global radius, ball_count, screen, width, height
+    global radius, ball_count, screen, width, height, score, radius
     pygame.init()
     width, height = 400, 600
     screen = pygame.display.set_mode((width, height))
     start_screen()
+    f1 = pygame.font.Font(None, 36)
     clock = pygame.time.Clock()
     space = pymunk.Space()
     space.gravity = (0, 500)
-    radius = [25, 35, 45, 55, 65, 75]
     dic = {25: 'imgs/ball1.png', 35: 'imgs/ball2.png', 45: 'imgs/ball3.png', 55: 'imgs/ball4.png', 65: 'imgs/ball5.png',
            75: 'imgs/ball6.png'}
 
@@ -160,6 +167,8 @@ def main():
         # Обработка столкновения шаров
         space.collision_handler = space.add_collision_handler(0, 0)
         space.collision_handler.begin = remove_ball
+        text1 = f1.render(str(score), 1, (0, 0, 0))
+        screen.blit(text1, (20, 20))
 
         pygame.display.flip()
         clock.tick(50)
