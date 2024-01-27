@@ -32,7 +32,7 @@ pause = True
 
 def start_screen():
     global pause
-    text = my_font.render('Watermelon game', False, (0, 0, 0))
+    text = my_font.render('Furry game', False, (255, 192, 203))
     start_but = Button(width / 2 - 100, height / 2 + 100, 200, 50, 'Начать игру', clear)
     fon = pygame.transform.scale(pygame.image.load('imgs/fon.png'), (width, height))
     screen.blit(fon, (0, 0))
@@ -42,7 +42,7 @@ def start_screen():
             if event.type == pygame.QUIT:
                 terminate()
         start_but.process()
-        screen.blit(text, (75, 50))
+        screen.blit(text, (120, 200))
         pygame.display.flip()
 
 
@@ -58,7 +58,7 @@ class Button():
         self.onePress = onePress
         self.alreadyPressed = False
         self.fillColors = {
-            'normal': '#ffffff',
+            'normal': '#ffc0cb',
             'hover': '#666666',
             'pressed': '#333333',
         }
@@ -193,8 +193,8 @@ def main():
 
     space.gravity = (0, 500)
     radius = [25, 35, 45, 55, 65, 75]
-    dic = {25: 'imgs/ball1.png', 35: 'imgs/ball2.png', 45: 'imgs/ball3.png', 55: 'imgs/ball4.png', 65: 'imgs/ball5.png',
-           75: 'imgs/ball6.png'}
+    dic = {25: 'furry/fur1.png', 35: 'furry/fur2.png', 45: 'furry/fur3.png', 55: 'furry/fur4.png', 65: 'furry/fur5.png',
+           75: 'furry/fur6.png'}
 
     # Создание краев окна
     static_lines = [
