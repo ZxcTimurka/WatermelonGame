@@ -255,7 +255,7 @@ def main():
         FPS += 3
 
         screen.fill('white')
-        # screen.blit(game_fon, (0, 0))
+        screen.blit(game_fon, (0, 0))
 
         # Отрисовка изображения на шарике
         for ball in space.shapes:
