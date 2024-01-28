@@ -1,11 +1,20 @@
 import math
-import os
 import random
 import sys
 
 import pygame
 import pymunk
 import pymunk.pygame_util
+
+
+def c_skin(skin, n):
+    skin_list = ['base_skin', 'furry_skin']
+    num = skin_list.index(skin)
+    if num + n > len(skin_list) - 1:
+        num = 0
+    elif num + n < 0:
+        num = len(skin_list) - 1
+    return skin_list[num]
 
 
 # Загрузка изображения
@@ -32,17 +41,34 @@ pause = True
 
 def start_screen():
     global pause
-    text = my_font.render('Furry game', False, (255, 192, 203))
-    start_but = Button(width / 2 - 100, height / 2 + 100, 200, 50, 'Начать игру', clear)
+
     fon = pygame.transform.scale(pygame.image.load('imgs/fon.png'), (width, height))
     screen.blit(fon, (0, 0))
+
+    intro_text = ["FurryGame", "",
+                  "Правила игры",
+                  "Шарики туда сюда,",
+                  "Удачной игры!"]
+
     text_coord = 50
+
+    for line in intro_text:
+        global string_rendered
+        string_rendered = my_font.render(line, 1, (255, 192, 203))
+        intro_rect = string_rendered.get_rect()
+        text_coord += 10
+        intro_rect.top = text_coord
+        intro_rect.x = 10
+        text_coord += intro_rect.height
+        screen.blit(string_rendered, intro_rect)
+
+    start_but = Button(width / 2 - 100, height / 2 + 100, 200, 50, 'Начать игру', clear)
+
     while pause:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
         start_but.process()
-        screen.blit(text, (120, 200))
         pygame.display.flip()
 
 
@@ -132,8 +158,8 @@ def blitRotate(surf, image, pos, originPos, angle):
 
 
 # Функция для удаления шаров и создания нового
-def remove_ball(arbiter, space, data):
-    global ball_count, animation_timer, animation_speed, animation_frames, animation_index, score, win_sound, bounce_sound
+def update_ball(arbiter, space, data):
+    global ball_count, score, win_sound, bounce_soun
     if isinstance(arbiter.shapes[0], pymunk.Circle) and isinstance(arbiter.shapes[1], pymunk.Circle):
         shape = arbiter.shapes[0]
         shape2 = arbiter.shapes[1]
@@ -147,7 +173,7 @@ def remove_ball(arbiter, space, data):
             space.remove(shape, shape.body)
             space.remove(shape2, shape2.body)
             ball_count -= 2
-            create_ball(space, (shape2.body.position.x, shape2.body.position.y), shape.radius + 10)
+            create_ball(space, (shape2.body.position.x, shape2.body.position.y), round(shape.radius * 1.5))
             ball_count += 1
             if shape.radius >= 45:
                 score += 3
@@ -156,19 +182,13 @@ def remove_ball(arbiter, space, data):
             return True
         # if shape.body.position.y > 100 and shape2.body.position.y > 100:
         #     bounce_sound.play()
-            # for i in range(1000):
-            #     animation_timer += animation_speed
-            #     if animation_timer >= 1
-            #         animation_timer -= 1
-            #         animation_index = (animation_index + 1) % len(animation_frames)
-            #     current_frame = animation_frames[animation_index]
-            #     screen.blit(current_frame, shape.body.position)
-            #     pygame.display.flip()
     return True
 
 
 def main():
-    global radius, ball_count, screen, width, height, animation_timer, animation_speed, animation_frames, animation_index, score, my_font, pause
+    global radius, ball_count, screen, width, height, animation_timer, \
+        score, my_font, pause
+
     pygame.init()
     width, height = 400, 600
     screen = pygame.display.set_mode((width, height))
@@ -187,21 +207,20 @@ def main():
     clock = pygame.time.Clock()
     but1 = Button(width / 2 - 100, height / 2 + 100, 200, 50, 'Начать заново', clear)
 
-    # animation_frames = []
-    # animation_folder = 'gifs'
-    # for i in range(1, 10):
-    #     frame_path = os.path.join(animation_folder, f'{i}.png')
-    #     frame_image = pygame.image.load(frame_path)
-    #     animation_frames.append(frame_image)
-    #
-    # animation_index = 0
-    # animation_speed = 0.1
-    # animation_timer = 0
-
     space.gravity = (0, 500)
-    radius = [25, 35, 45, 55, 65, 75]
-    dic = {25: 'furry/fur1.png', 35: 'furry/fur2.png', 45: 'furry/fur3.png', 55: 'furry/fur4.png', 65: 'furry/fur5.png',
-           75: 'furry/fur6.png'}
+    radius = [20, 30, 45, 68, 102, 153]
+
+    skin = 'base_skin'
+    base_skin = {20: 'imgs/ball1.png', 30: 'imgs/ball2.png', 45: 'imgs/ball3.png', 68: 'imgs/ball4.png',
+                 102: 'imgs/ball5.png',
+                 153: 'imgs/ball6.png'}
+    furry_skin = {20: 'furry/fur1.png', 30: 'furry/fur2.png', 45: 'furry/fur3.png', 68: 'furry/fur4.png',
+                  102: 'furry/fur5.png',
+                  153: 'furry/fur6.png'}
+
+    # Обработка столкновения шаров
+    space.collision_handler = space.add_collision_handler(0, 0)
+    space.collision_handler.begin = update_ball
 
     # Создание краев окна
     static_lines = [
@@ -218,16 +237,15 @@ def main():
 
     running = True
     while running:
-        # animation_timer += animation_speed
-        # if animation_timer >= 1:
-        #     animation_timer -= 1
-        #     animation_index = (animation_index + 1) % len(animation_frames)
 
-        # current_frame = animation_frames[animation_index]
-        # screen.blit(current_frame, (100, 100))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RIGHT:
+                    skin = c_skin(skin, 1)
+                elif event.key == pygame.K_LEFT:
+                    skin = c_skin(skin, -1)
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # Создание шарика при нажатии кнопки мыши
                 if FPS >= 50:
@@ -237,7 +255,7 @@ def main():
         FPS += 3
 
         screen.fill('white')
-        screen.blit(game_fon, (0, 0))
+        # screen.blit(game_fon, (0, 0))
 
         # Отрисовка изображения на шарике
         for ball in space.shapes:
@@ -246,15 +264,16 @@ def main():
                     ball.body.time += 1
                     if ball.body.time > 100:
                         pause = True
+
                 w = h = ball.radius * 2
-                image = load_image(ball.radius, dic[ball.radius])
+                image = load_image(ball.radius, locals().get(skin)[ball.radius])
                 blitRotate(screen, image, ball.body.position, (w / 2, h / 2), -ball.body.angle * 180 / math.pi)
 
         # Отрисовка шара сверху
         if ball_count == 0 or ball.body.position.y > 200:
             x = pygame.mouse.get_pos()[0] - random_rad
             pygame.draw.line(screen, 'black', (pygame.mouse.get_pos()[0], 10), (pygame.mouse.get_pos()[0], height), 2)
-            screen.blit(load_image(random_rad, dic[random_rad]), (x, 0))
+            screen.blit(load_image(random_rad, locals().get(skin)[random_rad]), (x, 0))
 
         # Обновление физики
         space.step(1 / 50.0)
@@ -265,17 +284,16 @@ def main():
         pygame.draw.line(screen, 'black', (width - 1, 1), (width - 1, height), 5)
         pygame.draw.line(screen, 'red', (0, 100), (width, 100), 5)
 
-        # Обработка столкновения шаров
-        space.collision_handler = space.add_collision_handler(0, 0)
-        space.collision_handler.begin = remove_ball
         text_surface = my_font.render(str(score), False, (0, 0, 0))
         screen.blit(text_surface, (20, 20))
+
         if pause:
             lose_text = my_font.render('Ты проиграл!', False, (0, 0, 0))
             score_text = my_font.render(f'У тебя {score} очков.', False, (0, 0, 0))
             text_rects = [lose_text.get_rect(center=(width / 2, height / 2)),
                           score_text.get_rect(center=(width / 2, (height / 2) + 40))]
             pygame.mixer.music.pause()
+
             while pause:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
@@ -284,6 +302,7 @@ def main():
                     screen.blit(score_text, text_rects[1])
                     but1.process()
                     pygame.display.flip()
+
         pygame.display.flip()
         clock.tick(50)
 
