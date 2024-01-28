@@ -93,8 +93,7 @@ def clear():
     global space, pause, score
     for ball in space.shapes:
         if isinstance(ball, pymunk.shapes.Circle):
-            pymunk.Space.remove(space, ball.body)
-            pymunk.Space.remove(space, ball)
+            space.remove(ball, ball.body)
     pause = False
     score = 0
     pygame.mixer.music.unpause()
@@ -134,7 +133,7 @@ def blitRotate(surf, image, pos, originPos, angle):
 
 # Функция для удаления шаров и создания нового
 def remove_ball(arbiter, space, data):
-    global ball_count, animation_timer, animation_speed, animation_frames, animation_index, score, win_sound
+    global ball_count, animation_timer, animation_speed, animation_frames, animation_index, score, win_sound, bounce_sound
     if isinstance(arbiter.shapes[0], pymunk.Circle) and isinstance(arbiter.shapes[1], pymunk.Circle):
         shape = arbiter.shapes[0]
         shape2 = arbiter.shapes[1]
@@ -143,6 +142,7 @@ def remove_ball(arbiter, space, data):
             space.remove(shape2, shape2.body)
             score += 4
             win_sound.play()
+            return True
         if shape.radius == shape2.radius and shape.radius != max(radius):
             space.remove(shape, shape.body)
             space.remove(shape2, shape2.body)
@@ -153,9 +153,12 @@ def remove_ball(arbiter, space, data):
                 score += 3
             else:
                 score += 1
+            return True
+        # if shape.body.position.y > 100 and shape2.body.position.y > 100:
+        #     bounce_sound.play()
             # for i in range(1000):
             #     animation_timer += animation_speed
-            #     if animation_timer >= 1:
+            #     if animation_timer >= 1
             #         animation_timer -= 1
             #         animation_index = (animation_index + 1) % len(animation_frames)
             #     current_frame = animation_frames[animation_index]
@@ -171,12 +174,16 @@ def main():
     screen = pygame.display.set_mode((width, height))
     pygame.font.init()
     start_screen()
+    game_fon = pygame.image.load('furry/fon_game.png')
     pygame.mixer.music.load("sounds/background_music.mp3")
     pygame.mixer.music.play(loops=-1, start=0.0, fade_ms=0)
     pygame.mixer.music.set_volume(0.1)
-    global win_sound
+    global win_sound, bounce_sound
     win_sound = pygame.mixer.Sound('sounds/win_sound.wav')
+    # bounce_sound = pygame.mixer.Sound('sounds/bounce.wav')
+    # bounce_sound.set_volume(0.1)
     win_sound.set_volume(0.1)
+    FPS = 0
     clock = pygame.time.Clock()
     but1 = Button(width / 2 - 100, height / 2 + 100, 200, 50, 'Начать заново', clear)
 
@@ -223,10 +230,14 @@ def main():
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # Создание шарика при нажатии кнопки мыши
-                create_ball(space, (event.pos[0], 0 + random_rad), random_rad)
-                random_rad = random.choice(radius[:3])
+                if FPS >= 50:
+                    create_ball(space, (event.pos[0], 0 + random_rad), random_rad)
+                    random_rad = random.choice(radius[:3])
+                    FPS = 0
+        FPS += 3
 
         screen.fill('white')
+        screen.blit(game_fon, (0, 0))
 
         # Отрисовка изображения на шарике
         for ball in space.shapes:
@@ -273,7 +284,6 @@ def main():
                     screen.blit(score_text, text_rects[1])
                     but1.process()
                     pygame.display.flip()
-
         pygame.display.flip()
         clock.tick(50)
 
