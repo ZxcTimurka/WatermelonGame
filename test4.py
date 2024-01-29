@@ -7,6 +7,8 @@ import pygame
 import pymunk
 import pymunk.pygame_util
 
+from bd import add_score
+
 
 def c_skin(skin, n):
     skin_list = ['base_skin', 'furry_skin']
@@ -46,7 +48,7 @@ def start_screen():
     fon = pygame.transform.scale(pygame.image.load('imgs/fon.png'), (width, height))
     screen.blit(fon, (0, 0))
 
-    intro_text = ["FurryGame", "",
+    intro_text = ["Furry Game", "",
                   "Правила игры",
                   "Шарики туда сюда,",
                   "Удачной игры!"]
@@ -195,6 +197,10 @@ def update_ball(arbiter, space, data):
     return True
 
 
+def print_score():
+    return score
+
+
 def main():
     global radius, ball_count, screen, width, height, animation_timer, \
         score, my_font, pause, animation_timer, animation_speed, animation_frames, animation_index
@@ -315,6 +321,9 @@ def main():
             text_rects = [lose_text.get_rect(center=(width / 2, height / 2)),
                           score_text.get_rect(center=(width / 2, (height / 2) + 40))]
             pygame.mixer.music.pause()
+            import time
+            date = time.strftime("%d/%m/%Y, %H:%M:%S", time.localtime())
+            add_score(score, date)
 
             while pause:
                 for event in pygame.event.get():
