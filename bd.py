@@ -2,7 +2,7 @@ import sqlite3
 
 
 def create_table():
-    con = sqlite3.connect('score.sqlite')
+    con = sqlite3.connect('score.db')
     with con:
         cursor = con.cursor()
         cursor.execute('''
@@ -14,7 +14,7 @@ def create_table():
 
 
 def add_score(score, date):
-    con = sqlite3.connect('score.sqlite')
+    con = sqlite3.connect('score.db')
     with con:
         data = con.execute("select count(*) from sqlite_master where type='table' and name='goods'")
         for row in data:
