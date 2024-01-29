@@ -1,4 +1,5 @@
 import math
+import os
 import random
 import sys
 
@@ -159,7 +160,7 @@ def blitRotate(surf, image, pos, originPos, angle):
 
 # Функция для удаления шаров и создания нового
 def update_ball(arbiter, space, data):
-    global ball_count, score, win_sound, bounce_soun
+    global ball_count, score, win_sound, bounce_soun, animation_timer, animation_speed, animation_frames, animation_index
     if isinstance(arbiter.shapes[0], pymunk.Circle) and isinstance(arbiter.shapes[1], pymunk.Circle):
         shape = arbiter.shapes[0]
         shape2 = arbiter.shapes[1]
@@ -179,15 +180,24 @@ def update_ball(arbiter, space, data):
                 score += 3
             else:
                 score += 1
+            for i in range(100):
+                animation_timer += animation_speed
+                if animation_timer >= 1:
+                    animation_timer -= 1
+                    animation_index = (animation_index + 1) % len(animation_frames)
+                current_frame = animation_frames[animation_index]
+                screen.blit(current_frame, (shape.body.position.x - shape.radius, shape.body.position.y - shape.radius))
+                pygame.display.flip()
             return True
         # if shape.body.position.y > 100 and shape2.body.position.y > 100:
         #     bounce_sound.play()
+
     return True
 
 
 def main():
     global radius, ball_count, screen, width, height, animation_timer, \
-        score, my_font, pause
+        score, my_font, pause, animation_timer, animation_speed, animation_frames, animation_index
 
     pygame.init()
     width, height = 400, 600
@@ -206,6 +216,18 @@ def main():
     FPS = 0
     clock = pygame.time.Clock()
     but1 = Button(width / 2 - 100, height / 2 + 100, 200, 50, 'Начать заново', clear)
+
+    animation_frames = []
+    animation_folder = 'boom'
+    for i in range(1, 5):
+        frame_path = os.path.join(animation_folder, f'bo{i}.png')
+        frame_image = pygame.image.load(frame_path)
+        frame_image = pygame.transform.scale(frame_image, (100, 100))
+        animation_frames.append(frame_image)
+
+    animation_index = 0
+    animation_speed = 0.1
+    animation_timer = 0
 
     space.gravity = (0, 500)
     radius = [20, 30, 45, 68, 102, 153]
