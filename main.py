@@ -1,11 +1,18 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
 import math
 import os
 import random
+import sqlite3
 import sys
 
 import pygame
 import pymunk
 import pymunk.pygame_util
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
+from PyQt5.QtWidgets import QPushButton, QLabel, QLineEdit, QTableView
 
 from bd import add_score
 
@@ -42,22 +49,68 @@ space = pymunk.Space()
 pause = True
 
 
+class SecondWindow(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent, QtCore.Qt.Window)
+        self.build()
+
+    def build(self):
+        con = sqlite3.connect('score.db')
+        cur = con.cursor()
+        self.setGeometry(300, 100, 650, 450)
+        self.setWindowTitle('База данных')
+        self.bdt = QLineEdit(self)
+        self.bdt.move(10, 395)
+        self.bdbtn = QPushButton('Вывести', self)
+        self.bdbtn.clicked.connect(self.print_im)
+        self.bdbtn.move(10, 420)
+        db = QSqlDatabase.addDatabase('QSQLITE')
+        db.setDatabaseName('score.db')
+        db.open()
+        view = QTableView(self)
+        model = QSqlTableModel(self, db)
+        model.setTable('scores')
+        model.select()
+        view.setModel(model)
+        view.move(10, 10)
+        view.resize(617, 315)
+        self.label = QLabel(self)
+
+    def print_im(self):
+        try:
+            self.label.hide()
+            con = sqlite3.connect('score.db')
+            cur = con.cursor()
+            res = cur.execute(f'SELECT * FROM scores WHERE id = "{self.bdt.text()}";').fetchall()
+            for elem in res:
+                path = (str(elem[3:])[2:-3])
+            con.close()
+            pixmap = QPixmap(path)
+            self.label.setPixmap(pixmap)
+            self.label.move(150, 445 - pixmap.height())
+            self.label.resize(pixmap.width(), pixmap.height())
+            self.label.show()
+        except Exception as e:
+            print(e)
+
+
 def start_screen():
-    global pause
-
+    global pause, background
+    pause = True
+    text_coord = 50
     fon = pygame.transform.scale(pygame.image.load('imgs/fon.png'), (width, height))
-    screen.blit(fon, (0, 0))
-
+    pygame.mixer.music.pause()
     intro_text = ["Furry Game", "",
                   "Правила игры",
                   "Шарики туда сюда,",
-                  "Удачной игры!"]
+                  "Удачной игры!",
+                  'R - рестарт',
+                  'ESC - главное меню']
 
-    text_coord = 50
-
+    screen.blit(fon, (0, 0))
     for line in intro_text:
         global string_rendered
-        string_rendered = my_font.render(line, 1, (255, 192, 203))
+        string_rendered = my_font.render(line, 1, (0, 0, 0))
         intro_rect = string_rendered.get_rect()
         text_coord += 10
         intro_rect.top = text_coord
@@ -66,6 +119,7 @@ def start_screen():
         screen.blit(string_rendered, intro_rect)
 
     start_but = Button(width / 2 - 100, height / 2 + 100, 200, 50, 'Начать игру', clear)
+    db_but = Button(width / 2 - 100, height / 2 + 200, 200, 50, 'Начать игру', clear)
 
     while pause:
         for event in pygame.event.get():
@@ -128,6 +182,28 @@ def clear():
     pygame.mixer.music.unpause()
 
 
+def pause_mod():
+    lose_text = my_font.render('Ты проиграл!', False, (0, 0, 0))
+    score_text = my_font.render(f'У тебя {score} очков.', False, (0, 0, 0))
+    text_rects = [lose_text.get_rect(center=(width / 2, height / 2)),
+                  score_text.get_rect(center=(width / 2, (height / 2) + 40))]
+    pygame.mixer.music.pause()
+    import time
+    date = time.strftime("%d/%m/%Y, %H:%M:%S", time.localtime())
+    add_score(score, date)
+    pause_fon = pygame.image.load('imgs/pause_fon.png')
+    but1 = Button(width / 2 - 100, height / 2 + 100, 200, 50, 'Начать заново', clear)
+    while pause:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                terminate()
+            screen.blit(pause_fon, (0, 0))
+            screen.blit(lose_text, text_rects[0])
+            screen.blit(score_text, text_rects[1])
+            but1.process()
+            pygame.display.flip()
+
+
 # Функция для создания шарика
 
 def create_ball(space, pos, radius):
@@ -161,8 +237,8 @@ def blitRotate(surf, image, pos, originPos, angle):
 
 
 # Функция для удаления шаров и создания нового
-def update_ball(arbiter, space, data):
-    global ball_count, score, win_sound, bounce_soun, animation_timer, animation_speed, animation_frames, animation_index
+def remove_ball(arbiter, space, data):
+    global ball_count, score, win_sound, bounce_soun, animation_timer, animation_speed, animation_frames, animation_index, music
     if isinstance(arbiter.shapes[0], pymunk.Circle) and isinstance(arbiter.shapes[1], pymunk.Circle):
         shape = arbiter.shapes[0]
         shape2 = arbiter.shapes[1]
@@ -171,6 +247,12 @@ def update_ball(arbiter, space, data):
             space.remove(shape2, shape2.body)
             score += 4
             win_sound.play()
+            if music:
+                pygame.mixer.music.stop()
+                pygame.mixer.music.load('sounds/OMFG - I Love You (320 kbps).mp3')
+                pygame.mixer.music.play(loops=-1, start=0.0, fade_ms=0)
+                pygame.mixer.music.set_volume(0.1)
+                music = False
             return True
         if shape.radius == shape2.radius and shape.radius != max(radius):
             space.remove(shape, shape.body)
@@ -191,25 +273,19 @@ def update_ball(arbiter, space, data):
                 screen.blit(current_frame, (shape.body.position.x - shape.radius, shape.body.position.y - shape.radius))
                 pygame.display.flip()
             return True
-        # if shape.body.position.y > 100 and shape2.body.position.y > 100:
-        #     bounce_sound.play()
 
     return True
 
 
-def print_score():
-    return score
-
-
 def main():
     global radius, ball_count, screen, width, height, animation_timer, \
-        score, my_font, pause, animation_timer, animation_speed, animation_frames, animation_index
-
+        score, my_font, pause, animation_timer, animation_speed, animation_frames, animation_index, music, pause
     pygame.init()
     width, height = 400, 600
     screen = pygame.display.set_mode((width, height))
     pygame.font.init()
     start_screen()
+    music = True
     game_fon = pygame.image.load('furry/fon_game.png')
     pygame.mixer.music.load("sounds/background_music.mp3")
     pygame.mixer.music.play(loops=-1, start=0.0, fade_ms=0)
@@ -221,7 +297,6 @@ def main():
     win_sound.set_volume(0.1)
     FPS = 0
     clock = pygame.time.Clock()
-    but1 = Button(width / 2 - 100, height / 2 + 100, 200, 50, 'Начать заново', clear)
 
     animation_frames = []
     animation_folder = 'boom'
@@ -237,7 +312,6 @@ def main():
 
     space.gravity = (0, 500)
     radius = [20, 30, 45, 68, 102, 153]
-
     skin = 'base_skin'
     base_skin = {20: 'imgs/ball1.png', 30: 'imgs/ball2.png', 45: 'imgs/ball3.png', 68: 'imgs/ball4.png',
                  102: 'imgs/ball5.png',
@@ -245,10 +319,6 @@ def main():
     furry_skin = {20: 'furry/fur1.png', 30: 'furry/fur2.png', 45: 'furry/fur3.png', 68: 'furry/fur4.png',
                   102: 'furry/fur5.png',
                   153: 'furry/fur6.png'}
-
-    # Обработка столкновения шаров
-    space.collision_handler = space.add_collision_handler(0, 0)
-    space.collision_handler.begin = update_ball
 
     # Создание краев окна
     static_lines = [
@@ -265,7 +335,6 @@ def main():
 
     running = True
     while running:
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -274,12 +343,19 @@ def main():
                     skin = c_skin(skin, 1)
                 elif event.key == pygame.K_LEFT:
                     skin = c_skin(skin, -1)
+                elif event.key == pygame.K_r:
+                    clear()
+                    pygame.mixer.music.rewind()
+                elif event.key == pygame.K_ESCAPE:
+                    start_screen()
+                    pygame.mixer.music.rewind()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # Создание шарика при нажатии кнопки мыши
                 if FPS >= 50:
                     create_ball(space, (event.pos[0], 0 + random_rad), random_rad)
                     random_rad = random.choice(radius[:3])
                     FPS = 0
+
         FPS += 3
 
         screen.fill('white')
@@ -315,25 +391,13 @@ def main():
         text_surface = my_font.render(str(score), False, (0, 0, 0))
         screen.blit(text_surface, (20, 20))
 
+        # Обработка столкновения шаров
+        space.collision_handler = space.add_collision_handler(0, 0)
+        space.collision_handler.begin = remove_ball
+        text_surface = my_font.render(str(score), False, (0, 0, 0))
+        screen.blit(text_surface, (20, 20))
         if pause:
-            lose_text = my_font.render('Ты проиграл!', False, (0, 0, 0))
-            score_text = my_font.render(f'У тебя {score} очков.', False, (0, 0, 0))
-            text_rects = [lose_text.get_rect(center=(width / 2, height / 2)),
-                          score_text.get_rect(center=(width / 2, (height / 2) + 40))]
-            pygame.mixer.music.pause()
-            import time
-            date = time.strftime("%d/%m/%Y, %H:%M:%S", time.localtime())
-            add_score(score, date)
-
-            while pause:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        terminate()
-                    screen.blit(lose_text, text_rects[0])
-                    screen.blit(score_text, text_rects[1])
-                    but1.process()
-                    pygame.display.flip()
-
+            pause_mod()
         pygame.display.flip()
         clock.tick(50)
 
