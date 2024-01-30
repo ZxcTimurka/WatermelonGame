@@ -30,6 +30,6 @@ def add_score(score, date):
                 with con:
                     cursor = con.cursor()
                     cursor.execute('''
-                            NSERT INTO scores(score, date) VALUES(?, ?)
+                            INSERT INTO scores(score, date) VALUES(?, ?)
                         ''', (score, date))
                     con.commit()
