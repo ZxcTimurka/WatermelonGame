@@ -98,8 +98,9 @@ class SecondWindow(QtWidgets.QWidget):
 
 
 def start_screen():
-    global pause, background
+    global pause, background, music
     pause = True
+    music = False
     text_coord = 50
     fon = pygame.transform.scale(pygame.image.load('imgs/fon.png'), (width, height))
     pygame.mixer.music.pause()
