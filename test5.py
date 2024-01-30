@@ -2,7 +2,11 @@ import math
 import os
 import random
 import sys
-
+import sqlite3
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtGui import QPixmap
+from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
+from PyQt5.QtWidgets import QWidget, QPushButton, QApplication, QFileDialog, QLabel, QVBoxLayout, QLineEdit, QTableView
 import pygame
 import pymunk
 import pymunk.pygame_util
@@ -30,6 +34,51 @@ space = pymunk.Space()
 pause = True
 
 
+class SecondWindow(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent, QtCore.Qt.Window)
+        self.build()
+
+    def build(self):
+        con = sqlite3.connect('score.db')
+        cur = con.cursor()
+        self.setGeometry(300, 100, 650, 450)
+        self.setWindowTitle('База данных')
+        self.bdt = QLineEdit(self)
+        self.bdt.move(10, 395)
+        self.bdbtn = QPushButton('Вывести', self)
+        self.bdbtn.clicked.connect(self.print_im)
+        self.bdbtn.move(10, 420)
+        db = QSqlDatabase.addDatabase('QSQLITE')
+        db.setDatabaseName('score.db')
+        db.open()
+        view = QTableView(self)
+        model = QSqlTableModel(self, db)
+        model.setTable('scores')
+        model.select()
+        view.setModel(model)
+        view.move(10, 10)
+        view.resize(617, 315)
+        self.label = QLabel(self)
+
+    def print_im(self):
+        try:
+            self.label.hide()
+            con = sqlite3.connect('score.db')
+            cur = con.cursor()
+            res = cur.execute(f'SELECT * FROM scores WHERE id = "{self.bdt.text()}";').fetchall()
+            for elem in res:
+                path = (str(elem[3:])[2:-3])
+            con.close()
+            pixmap = QPixmap(path)
+            self.label.setPixmap(pixmap)
+            self.label.move(150, 445 - pixmap.height())
+            self.label.resize(pixmap.width(), pixmap.height())
+            self.label.show()
+        except Exception as e:
+            print(e)
+
+
 def start_screen():
     global pause, background
     pause = True
@@ -38,6 +87,7 @@ def start_screen():
              my_font.render('R - рестарт', False, (0, 0, 0)),
              my_font.render('ESC - главное меню', False, (0, 0, 0))]
     start_but = Button(width / 2 - 100, height / 2 + 100, 200, 50, 'Начать игру', clear)
+    db_but = Button(width / 2 - 100, height / 2 + 200, 200, 50, 'Начать игру', clear)
     fon = pygame.transform.scale(pygame.image.load('imgs/fon.png'), (width, height))
     screen.blit(fon, (0, 0))
     while pause:
@@ -45,6 +95,7 @@ def start_screen():
             if event.type == pygame.QUIT:
                 terminate()
         start_but.process()
+        db_but.process()
         screen.blit(texts[0], (120, 200))
         screen.blit(texts[1], (10, 10))
         screen.blit(texts[2], (10, 60))
@@ -123,6 +174,7 @@ def pause_mod():
             but1.process()
             pygame.display.flip()
 
+
 # Функция для создания шарика
 
 def create_ball(space, pos, radius):
@@ -180,14 +232,14 @@ def remove_ball(arbiter, space, data):
             return True
         # if shape.body.position.y > 100 and shape2.body.position.y > 100:
         #     bounce_sound.play()
-            # for i in range(1000):
-            #     animation_timer += animation_speed
-            #     if animation_timer >= 1
-            #         animation_timer -= 1
-            #         animation_index = (animation_index + 1) % len(animation_frames)
-            #     current_frame = animation_frames[animation_index]
-            #     screen.blit(current_frame, shape.body.position)
-            #     pygame.display.flip()
+        # for i in range(1000):
+        #     animation_timer += animation_speed
+        #     if animation_timer >= 1
+        #         animation_timer -= 1
+        #         animation_index = (animation_index + 1) % len(animation_frames)
+        #     current_frame = animation_frames[animation_index]
+        #     screen.blit(current_frame, shape.body.position)
+        #     pygame.display.flip()
     return True
 
 
@@ -267,7 +319,7 @@ def main():
         FPS += 3
 
         screen.fill('white')
-        #screen.blit(game_fon, (0, 0))
+        # screen.blit(game_fon, (0, 0))
 
         # Отрисовка изображения на шарике
         for ball in space.shapes:
