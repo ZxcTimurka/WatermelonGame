@@ -6,13 +6,14 @@ import random
 import sqlite3
 import sys
 
+import PyQt5.QtWidgets
 import pygame
 import pymunk
 import pymunk.pygame_util
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtSql import QSqlDatabase, QSqlTableModel
-from PyQt5.QtWidgets import QPushButton, QLabel, QLineEdit, QTableView
+from PyQt5.QtWidgets import QLabel, QTableView
 
 from bd import add_score
 
@@ -47,6 +48,11 @@ pygame.init()
 my_font = pygame.font.SysFont(None, 40)
 space = pymunk.Space()
 pause = True
+def load_db():
+    app = PyQt5.QtWidgets.QApplication(sys.argv)
+    ex = SecondWindow()
+    ex.show()
+    app.exec()
 
 
 class SecondWindow(QtWidgets.QWidget):
@@ -59,11 +65,6 @@ class SecondWindow(QtWidgets.QWidget):
         cur = con.cursor()
         self.setGeometry(300, 100, 650, 450)
         self.setWindowTitle('База данных')
-        self.bdt = QLineEdit(self)
-        self.bdt.move(10, 395)
-        self.bdbtn = QPushButton('Вывести', self)
-        self.bdbtn.clicked.connect(self.print_im)
-        self.bdbtn.move(10, 420)
         db = QSqlDatabase.addDatabase('QSQLITE')
         db.setDatabaseName('score.db')
         db.open()
@@ -119,13 +120,14 @@ def start_screen():
         screen.blit(string_rendered, intro_rect)
 
     start_but = Button(width / 2 - 100, height / 2 + 100, 200, 50, 'Начать игру', clear)
-    db_but = Button(width / 2 - 100, height / 2 + 200, 200, 50, 'Начать игру', clear)
+    db_but = Button(width / 2 - 100, height / 2 + 200, 200, 50, 'Рейтинг', load_db)
 
     while pause:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
         start_but.process()
+        db_but.process()
         pygame.display.flip()
 
 
