@@ -25,6 +25,8 @@ def c_skin(skin, n):
         num = 0
     elif num + n < 0:
         num = len(skin_list) - 1
+    else:
+        num += n
     return skin_list[num]
 
 
@@ -106,7 +108,8 @@ def start_screen():
                   "Шарики туда сюда,",
                   "Удачной игры!",
                   'R - рестарт',
-                  'ESC - главное меню']
+                  'ESC - главное меню',
+                  '<-|-> - переключение скинов']
 
     screen.blit(fon, (0, 0))
     for line in intro_text:
